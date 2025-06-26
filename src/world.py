@@ -13,6 +13,13 @@ class World:
             "半獸人（海洋）": {"description": "適應海洋生活，能在水中自由呼吸。", "skills": ["水下呼吸"]},
             "龍裔": {"description": "擁有龍的血脈，天生就具有強大的力量。", "skills": ["龍之吐息"]},
         }
+        # 技能進化樹，用於處理技能進化系統
+        self.skill_tree = {
+            "駭客術": {"next": "資料探勘", "cost": 3},
+            "資料探勘": {"next": "神經入侵", "cost": 5},
+            "火球術": {"next": "烈焰爆破", "cost": 3},
+            "烈焰爆破": {"next": "流星焚界", "cost": 5},
+        }
         self.items = {
             # 消耗品
             "治療藥水": {
@@ -91,7 +98,8 @@ class World:
                 "slot": "accessory",
                 "description": "一枚古老的銀製護符，在月光下會發出微光。",
                 "faith_effect": {"月神": 5},
-                "ability": "月光祝福"
+                "ability": "月光祝福",
+                "passive": {"heal": 5}
             },
             "太陽神徽記": {
                 "type": "神器",
@@ -129,7 +137,8 @@ class World:
                 "description": "一把由黑曜石打造的匕首，似乎會在你耳邊低語。",
                 "corruption_effect": 5,
                 "bonus": {"STR": 2},
-                "curse": "持有者會時常聽到幻聽，進行專注相關的檢定時可能會有減益。"
+                "curse": "持有者會時常聽到幻聽，進行專注相關的檢定時可能會有減益。",
+                "passive": {"corruption": 1}
             },
             "腐化之顱": {
                 "type": "魔王遺物",

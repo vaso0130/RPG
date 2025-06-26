@@ -15,8 +15,8 @@ _NARRATIVE_PROMPT_TEMPLATE = """
 擲骰結果：{outcome_str}
 
 你的核心任務是推動故事發展，並根據情境給予獎勵或後果。
-**請務必參考玩家的「特殊能力」和「詛咒」，將它們的效果融入到敘述中。**
-你可以選擇給予玩家一個已知的物品，或是在極其稀有、關鍵的時刻，創造一個全新的傳說物品（神器或魔王遺物）。
+**請務必參考玩家的「特殊能力」、「詛咒」與「奇蹟」，將它們的效果融入到敘述中。**
+你可以選擇給予玩家一個已知的物品/技能/奇蹟，或是在極其稀有、關鍵的時刻，創造一個全新的傳說物品、獨特技能或神聖奇蹟。
 
 請嚴格按照以下格式回傳，不要有任何多餘的文字，若無變化則該行省略：
 
@@ -24,41 +24,35 @@ _NARRATIVE_PROMPT_TEMPLATE = """
 信仰:[神祇名稱],[+/-點數]
 腐化:[+/-點數]
 獲得物品:[物品名稱]
+獲得技能:[技能名稱]
+獲得奇蹟:[奇蹟名稱]
 創建物品:
 {{
-    "type": "[類型: 一般裝備/特製裝備/神器/魔王遺物]",
-    "slot": "[裝備位置: weapon/head/torso/arms/legs/feet/accessory]",
-    "description": "[物品的詳細描述]",
+    "type": "[類型]",
+    "slot": "[裝備位置]",
+    "description": "[描述]",
     "bonus": {{ "屬性": 點數 }},
-    "faith_effect": {{ "神祇": 點數 }},
-    "corruption_effect": 點數,
-    "ability": "[物品帶有的主動或被動能力]",
-    "curse": "[物品的詛咒效果]"
+    "ability": "[能力]"
+}}
+創建技能:
+{{
+    "cost": [GP成本],
+    "description": "[技能描述]"
+}}
+創建奇蹟:
+{{
+    "faith_cost": [信仰成本],
+    "deity": "[對應神祇]",
+    "description": "[奇蹟描述]"
 }}
 敘述:[接下來發生的事情]
 
 --- 重要規則 ---
-1.  **創造時機**: 創造新物品應該是非常罕見的事件，只在劇情達到高潮或玩家有重大發現時發生。
-2.  **格式準確**: 「創建物品」區塊必須是完整的 JSON 格式。如果新物品沒有某個屬性（例如沒有詛咒），請直接省略該鍵值對，不要留空值。
-3.  **名稱對應**: 只有在「創建物品」區塊被填寫時，「獲得物品」的名稱才應該是這個新創造的物品。否則，「獲得物品」應從已知物品列表選取。
+1.  **創造時機**: 創造新東西應該是非常罕見的事件，只在劇情達到高潮、玩家有重大發現或完成偉大成就時發生。
+2.  **格式準確**: 「創建」區塊必須是完整的 JSON 格式。如果新創造物沒有某個屬性，請直接省略該鍵值對。
+3.  **名稱對應**: 只有在「創建」區塊被填寫時，「獲得」的名稱才應該是這個新創造的東西。
 4.  **敘述為本**: 「敘述」是必要部分，必須提供。
-
---- 範例 (創造神器) ---
-獲得物品:淚光之石
-創建物品:
-{{
-    "type": "神器",
-    "slot": "accessory",
-    "description": "一顆在月光下會散發出柔和微光的石頭，傳說是由月神的眼淚凝結而成。觸摸它時能感受到一股寧靜祥和的力量。",
-    "bonus": {{
-        "WIS": 1
-    }},
-    "faith_effect": {{
-        "月神": 3
-    }},
-    "ability": "心靈平靜"
-}}
-敘述:當你觸碰祭壇中央的凹槽時，你手中的普通石頭突然發出耀眼的光芒！光芒散去後，一顆美麗的寶石靜靜地躺在你的掌心，它的能量讓你感到前所未有的平靜。
+5.  **類型分離**: 一次回應中，最多只能創造一種類型（物品、技能、奇蹟擇一）。
 """
 
 class Narrator:
@@ -144,6 +138,8 @@ class Narrator:
             f"{player.name} ({player.race}, HP: {player.hp}/{player.get_max_hp(world)}, "
             f"屬性: {player.get_total_attributes(world)}, "
             f"腐化: {player.corruption}, 信仰: {player.faith}, "
+            f"技能: {player.skills}, "
+            f"奇蹟: {player.miracles if player.miracles else '無'}, "
             f"特殊能力: {player.get_active_abilities(world) if player.get_active_abilities(world) else '無'}, "
             f"詛咒: {player.get_curses(world) if player.get_curses(world) else '無'})"
         )
@@ -165,6 +161,8 @@ class Narrator:
             f"{player.name} ({player.race}, HP: {player.hp}/{player.get_max_hp(world)}, "
             f"屬性: {player.get_total_attributes(world)}, "
             f"腐化: {player.corruption}, 信仰: {player.faith}, "
+            f"技能: {player.skills}, "
+            f"奇蹟: {player.miracles if player.miracles else '無'}, "
             f"特殊能力: {player.get_active_abilities(world) if player.get_active_abilities(world) else '無'}, "
             f"詛咒: {player.get_curses(world) if player.get_curses(world) else '無'})"
         )
@@ -186,19 +184,44 @@ class Narrator:
             faith_change = None
             corruption_change = 0
             item_received = None
+            skill_received = None # 新增
+            miracle_received = None # 新增
             new_item_definition = None
+            new_skill_definition = None # 新增
+            new_miracle_definition = None # 新增
             narrative = ""
 
-            # 1. 優先解析並提取「創建物品」的 JSON 區塊
+            # 1. 優先解析並提取所有「創建」區塊
+            # 創建物品
             item_def_match = re.search(r"創建物品:\s*(\{.*?\})", response_text, re.DOTALL)
             if item_def_match:
                 json_str = item_def_match.group(1)
                 try:
                     new_item_definition = json.loads(json_str)
-                    # 從原始文本中移除已解析的區塊，避免干擾後續解析
                     response_text = response_text.replace(item_def_match.group(0), "")
                 except json.JSONDecodeError as e:
                     print(f"【錯誤】解析AI創造的物品JSON時發生錯誤：{e}\n原始JSON字串：{json_str}")
+            
+            # 創建技能
+            skill_def_match = re.search(r"創建技能:\s*(\{.*?\})", response_text, re.DOTALL)
+            if skill_def_match:
+                json_str = skill_def_match.group(1)
+                try:
+                    new_skill_definition = json.loads(json_str)
+                    response_text = response_text.replace(skill_def_match.group(0), "")
+                except json.JSONDecodeError as e:
+                    print(f"【錯誤】解析AI創造的技能JSON時發生錯誤：{e}\n原始JSON字串：{json_str}")
+
+            # 創建奇蹟
+            miracle_def_match = re.search(r"創建奇蹟:\s*(\{.*?\})", response_text, re.DOTALL)
+            if miracle_def_match:
+                json_str = miracle_def_match.group(1)
+                try:
+                    new_miracle_definition = json.loads(json_str)
+                    response_text = response_text.replace(miracle_def_match.group(0), "")
+                except json.JSONDecodeError as e:
+                    print(f"【錯誤】解析AI創造的奇蹟JSON時發生錯誤：{e}\n原始JSON字串：{json_str}")
+
 
             # 2. 逐行解析剩餘的內容
             lines = response_text.strip().split('\n')
@@ -216,6 +239,10 @@ class Narrator:
                     corruption_change = int(line.split(':')[1].strip())
                 elif line.startswith("獲得物品:"):
                     item_received = line.split(':')[1].strip()
+                elif line.startswith("獲得技能:"):
+                    skill_received = line.split(':')[1].strip()
+                elif line.startswith("獲得奇蹟:"):
+                    miracle_received = line.split(':')[1].strip()
                 elif line.startswith("敘述:"):
                     narrative = line.split(':', 1)[1].strip()
                 elif "敘述:" not in response_text: # 如果完全沒有敘述標籤，將無法被解析的行視為敘述的一部分
@@ -224,15 +251,14 @@ class Narrator:
             # 如果解析後敘述為空，但原始文本中有內容，則將整個剩餘文本視為敘述
             if not narrative.strip() and response_text.strip():
                  # 清理掉可能殘留的標籤
-                clean_text = re.sub(r"^(成長點數|信仰|腐化|獲得物品):.*?\n?", "", response_text, flags=re.MULTILINE).strip()
+                clean_text = re.sub(r"^(成長點數|信仰|腐化|獲得物品|獲得技能|獲得奇蹟):.*?\n?", "", response_text, flags=re.MULTILINE).strip()
                 narrative = clean_text
 
-            return narrative, gp_awarded, faith_change, corruption_change, item_received, new_item_definition
+            return narrative, gp_awarded, faith_change, corruption_change, item_received, new_item_definition, skill_received, new_skill_definition, miracle_received, new_miracle_definition
 
         except Exception as e:
             print(f"【錯誤】解析AI敘述時發生錯誤：{e}\n原始回應：{response_text}")
-            return response_text, 0, None, 0, None, None
-
+            return response_text, 0, None, 0, None, None, None, None, None, None
     def generate_improvised_character(self, player, world):
         """
         使用 Gemini API 生成一個即興的角色與開場。

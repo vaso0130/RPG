@@ -3,22 +3,57 @@ class World:
         self.locations = {}
         self.time = 0
         self.races = {
-            "人類": {"description": "適應力強，在世界各地都能找到他們的蹤跡。", "skills": []},
-            "城市精靈": {"description": "優雅而敏捷，擅長在都市叢林中穿梭。", "skills": ["都市潛行"]},
+            "人類": {"description": "適應力強，在世界各地都能找到他們的蹤跡。", "skills": ["急救"]},
+            "城市精靈": {"description": "優雅而敏捷，擅長在都市叢林中穿梭。", "skills": ["潛行"]},
             "木精靈": {"description": "與自然和諧共生，是森林的守護者。", "skills": ["自然感應"]},
             "沙漠精靈": {"description": "堅韌不拔，能在嚴酷的沙漠環境中生存。", "skills": ["沙塵暴"]},
-            "黑暗精靈": {"description": "居住在地底深處，擅長使用黑暗魔法。", "skills": ["暗影術"]},
+            "黑暗精靈": {"description": "居住在地底深處，擅長使用黑暗魔法。", "skills": ["心靈操控"]},
             "矮人": {"description": "強壯而堅毅的工匠，擅長打造武器和盔甲。", "skills": ["精工製作"]},
             "半獸人（森林）": {"description": "擁有野性的力量，是森林中的優秀獵人。", "skills": ["野性衝鋒"]},
             "半獸人（海洋）": {"description": "適應海洋生活，能在水中自由呼吸。", "skills": ["水下呼吸"]},
-            "龍裔": {"description": "擁有龍的血脈，天生就具有強大的力量。", "skills": ["龍之吐息"]},
+            "龍裔": {"description": "擁有龍的血脈，天生就具有強大的力量。", "skills": ["火球術"]},
         }
         # 技能進化樹，用於處理技能進化系統
         self.skill_tree = {
+            # 普通技能 (General)
             "駭客術": {"next": "資料探勘", "cost": 3},
             "資料探勘": {"next": "神經入侵", "cost": 5},
+            "急救": {"next": "戰地醫療", "cost": 3},
+            "戰地醫療": {"next": "再生力場", "cost": 5},
+            "潛行": {"next": "匿蹤", "cost": 2},
+            "匿蹤": {"next": "陰影漫步", "cost": 4},
+            "說服": {"next": "操縱", "cost": 4},
+            "操縱": {"next": "思想植入", "cost": 6},
+
+            # 魔法技能 (Arcane)
             "火球術": {"next": "烈焰爆破", "cost": 3},
             "烈焰爆破": {"next": "流星焚界", "cost": 5},
+            "心靈操控": {"next": "精神衝擊", "cost": 4},
+            "精神衝擊": {"next": "意識奪取", "cost": 6},
+            "混沌閃電": {"next": "混沌風暴", "cost": 4},
+            "混沌風暴": {"next": "混沌滅絕", "cost": 6},
+
+            # 科技技能 (Tech)
+            "無人機操控": {"next": "無人機蜂群", "cost": 3},
+            "無人機蜂群": {"next": "戰術機甲", "cost": 5},
+        }
+        # 可學習的基礎技能
+        self.skills = {
+            "駭客術": {"cost": 5, "description": "入侵和操縱電腦系統的能力。"},
+            "急救": {"cost": 3, "description": "穩定傷勢和進行基本治療的能力。"},
+            "潛行": {"cost": 4, "description": "在不被發現的情況下移動的能力。"},
+            "說服": {"cost": 4, "description": "透過言語影響他人的能力。"},
+            "火球術": {"cost": 5, "description": "投擲一個燃燒的火球。"},
+            "心靈操控": {"cost": 6, "description": "影響或控制他人思想的魔法。"},
+            "混沌閃電": {"cost": 6, "description": "召喚一道不穩定的閃電。"},
+            "無人機操控": {"cost": 5, "description": "操作和指揮無人機。"},
+        }
+        # 新增奇蹟字典
+        self.miracles = {
+            "神聖光輝": {
+                "deity": "太陽神",
+                "description": "呼喚太陽神的力量，發出神聖光芒治療盟友並傷害不死生物。"
+            }
         }
         self.items = {
             # 消耗品
@@ -181,3 +216,19 @@ class World:
             return
         self.items[item_name] = item_definition
         print(f"【系統】新的物品知識已加入世界：{item_name}")
+
+    def add_skill_definition(self, skill_name, skill_definition):
+        """Dynamically adds a new skill definition to the world."""
+        if skill_name in self.skills:
+            print(f"【系統警告】試圖覆蓋現有的技能定義：{skill_name}")
+            return
+        self.skills[skill_name] = skill_definition
+        print(f"【系統】新的技能知識已加入世界：{skill_name}")
+
+    def add_miracle_definition(self, miracle_name, miracle_definition):
+        """Dynamically adds a new miracle definition to the world."""
+        if miracle_name in self.miracles:
+            print(f"【系統警告】試圖覆蓋現有的奇蹟定義：{miracle_name}")
+            return
+        self.miracles[miracle_name] = miracle_definition
+        print(f"【系統】新的奇蹟知識已加入世界：{miracle_name}")

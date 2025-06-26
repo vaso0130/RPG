@@ -6,6 +6,7 @@ class Player:
         self.race = ""
         self.background = ""
         self.skills = []
+        self.miracles = [] # 新增奇蹟列表
         self.inventory = [] # A list of item names
         self.location = None
         self.attributes = {
@@ -341,6 +342,7 @@ class Player:
 
         print("\n--- 技能、裝備與物品 ---")
         print(f"技能: {', '.join(self.skills) if self.skills else '無'}")
+        print(f"奇蹟: {', '.join(self.miracles) if self.miracles else '無'}")
         
         print("裝備:")
         equipped_items_found = False
@@ -362,7 +364,7 @@ class Player:
             print("\n--- 角色成長選單 ---")
             print(f"你目前擁有 {self.growth_points} 成長點數 (GP)。")
             print("1. 提升基礎屬性")
-            print("2. 學習或進化技能 (尚未開放)")
+            print("2. 學習或進化技能")
             print("3. 返回遊戲")
 
             choice = input("請選擇你要做什麼：")
@@ -370,7 +372,7 @@ class Player:
             if choice == '1':
                 self.increase_attributes(world)
             elif choice == '2':
-                self.evolve_skills(world)
+                self.manage_skills(world)
             elif choice == '3':
                 break
             else:
@@ -420,6 +422,84 @@ class Player:
             else:
                 print("已取消提升。")
 
+    def manage_skills(self, world):
+        """互動式技能學習與進化流程。"""
+        while True:
+            print("\n--- 技能管理 ---")
+            print(f"你目前擁有 {self.growth_points} GP。")
+            print("1. 學習新技能")
+            print("2. 進化現有技能")
+            print("3. 返回成長選單")
+            choice = input("請選擇: ")
+
+            if choice == '1':
+                self.learn_new_skill(world)
+            elif choice == '2':
+                self.evolve_existing_skill(world)
+            elif choice == '3':
+                break
+            else:
+                print("無效的選擇。")
+
+    def learn_new_skill(self, world):
+        """處理學習新技能的邏輯"""
+        while True:
+            print("\n--- 學習新技能 ---")
+            print(f"你目前擁有 {self.growth_points} GP。")
+            
+            learnable = {}
+            idx = 1
+            for skill, info in world.skills.items():
+                # 檢查玩家是否已有該技能或其進化版
+                has_skill_in_tree = False
+                for player_skill in self.skills:
+                    # 追溯玩家技能的根技能
+                    base_skill = player_skill
+                    while True:
+                        prev_skill_found = False
+                        for key, value in world.skill_tree.items():
+                            if value['next'] == base_skill:
+                                base_skill = key
+                                prev_skill_found = True
+                                break
+                        if not prev_skill_found:
+                            break
+                    
+                    if base_skill == skill:
+                        has_skill_in_tree = True
+                        break
+
+                if not has_skill_in_tree:
+                    print(f"{idx}. {skill} - {info['description']} (花費 {info['cost']} GP)")
+                    learnable[str(idx)] = {"name": skill, "cost": info['cost']}
+                    idx += 1
+            
+            if not learnable:
+                print("你已學會所有可用的基礎技能，或已擁有其進化版本。")
+                return
+
+            choice = input("選擇要學習的技能編號，或輸入 '返回': ")
+            if choice == '返回':
+                return
+            
+            if choice in learnable:
+                skill_to_learn = learnable[choice]
+                cost = skill_to_learn['cost']
+                name = skill_to_learn['name']
+
+                if self.growth_points >= cost:
+                    confirm = input(f"確定要花費 {cost} GP 學習 {name} 嗎？ (是/否): ").lower()
+                    if confirm in ['是', 'y', 'yes']:
+                        self.growth_points -= cost
+                        self.skills.append(name)
+                        print(f"你已成功學習 {name}！")
+                    else:
+                        print("已取消學習。")
+                else:
+                    print("你的 GP 不足。")
+            else:
+                print("無效的選擇。")
+
     def evolve_skill(self, skill_name, world):
         """嘗試將指定技能進化，成功時回傳 True。"""
         if skill_name not in self.skills:
@@ -443,10 +523,11 @@ class Player:
         print(f"{skill_name} 已進化為 {next_skill}！剩餘 {self.growth_points} GP。")
         return True
 
-    def evolve_skills(self, world):
+    def evolve_existing_skill(self, world):
         """互動式技能進化流程。"""
         while True:
             print("\n--- 技能進化 ---")
+            print(f"你目前擁有 {self.growth_points} GP。")
             available = {}
             for idx, skill in enumerate(self.skills, start=1):
                 if skill in world.skill_tree:

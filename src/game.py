@@ -131,12 +131,20 @@ def start_game():
             continue
 
         # 處理玩家動作
-        result, gp_awarded, faith_change, corruption_change, item_received, new_item_def = handle_action(action, p, w, n)
+        result, gp_awarded, faith_change, corruption_change, item_received, new_item_def, skill_received, new_skill_def, miracle_received, new_miracle_def = handle_action(action, p, w, n)
         print(result)
 
         # 處理新創建的物品
         if new_item_def and item_received:
             w.add_item_definition(item_received, new_item_def)
+
+        # 處理新創建的技能
+        if new_skill_def and skill_received:
+            w.add_skill_definition(skill_received, new_skill_def)
+
+        # 處理新創建的奇蹟
+        if new_miracle_def and miracle_received:
+            w.add_miracle_definition(miracle_received, new_miracle_def)
 
         # 處理成長點數
         if gp_awarded > 0:
@@ -164,6 +172,18 @@ def start_game():
         # 處理獲得物品
         if item_received:
             p.add_item(item_received)
+
+        # 處理獲得技能
+        if skill_received:
+            if skill_received not in p.skills:
+                p.skills.append(skill_received)
+                print(f"【系統】你學會了新的技能：{skill_received}！")
+
+        # 處理獲得奇蹟
+        if miracle_received:
+            if miracle_received not in p.miracles:
+                p.miracles.append(miracle_received)
+                print(f"【系統】你領悟了新的奇蹟：{miracle_received}！")
 
         # --- 回合結束階段 ---
         end_of_turn_effects(p, w)
@@ -203,7 +223,7 @@ def handle_action(action, p, w, n):
     # 由敘事者判斷動作是否合理，以及是否需要擲骰
     is_valid, reason, needs_roll, num_dice, target = n.evaluate_action(action, p, w)
     if not is_valid:
-        return reason, 0, None, 0, None, None
+        return reason, 0, None, 0, None, None, None, None, None, None
 
     # 如果不需要擲骰，直接獲取結果
     if not needs_roll:
@@ -256,7 +276,7 @@ def end_of_turn_effects(p, w):
     
     for attr, item_name in effects_to_remove:
         del p.active_effects[attr][item_name]
-        # 如果某個屬性的所有效果都沒了，就移除該屬性的鍵
+        # 如果某个属性的所有效果都没了，就移除该属性的键
         if not p.active_effects[attr]:
             del p.active_effects[attr]
         print(f"【系統】來自 {item_name} 的效果已結束。")

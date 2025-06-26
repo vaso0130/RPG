@@ -166,7 +166,7 @@ def start_game():
             p.add_item(item_received)
 
         # --- 回合結束階段 ---
-        end_of_turn_effects(p)
+        end_of_turn_effects(p, w)
 
         # 檢查遊戲是否結束
         if is_game_over(p, w):
@@ -243,7 +243,7 @@ def is_game_over(p, w):
     # 未來可以加入更多失敗條件，例如腐化過高、世界毀滅等
     return False
 
-def end_of_turn_effects(p):
+def end_of_turn_effects(p, w):
     """
     處理回合結束時的增益/減益效果。
     """
@@ -260,3 +260,21 @@ def end_of_turn_effects(p):
         if not p.active_effects[attr]:
             del p.active_effects[attr]
         print(f"【系統】來自 {item_name} 的效果已結束。")
+
+    # 處理裝備的被動效果
+    for slot, item_name in p.equipment.items():
+        if not item_name:
+            continue
+        item = w.items.get(item_name)
+        if not item:
+            continue
+        passive = item.get("passive")
+        if not passive:
+            continue
+        if "heal" in passive:
+            p.heal(passive["heal"], w)
+        if "corruption" in passive:
+            p.corruption += passive["corruption"]
+            print(
+                f"【系統】{item_name} 的黑暗氣息讓你的腐化值增加 {passive['corruption']}。"
+            )

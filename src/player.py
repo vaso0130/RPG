@@ -370,7 +370,7 @@ class Player:
             if choice == '1':
                 self.increase_attributes(world)
             elif choice == '2':
-                print("此功能尚未開放，敬請期待！")
+                self.evolve_skills(world)
             elif choice == '3':
                 break
             else:
@@ -419,3 +419,49 @@ class Player:
                 print(f"{attr_choice} 已提升至 {self.attributes[attr_choice]}！")
             else:
                 print("已取消提升。")
+
+    def evolve_skill(self, skill_name, world):
+        """嘗試將指定技能進化，成功時回傳 True。"""
+        if skill_name not in self.skills:
+            print("你沒有這個技能。")
+            return False
+
+        tree = world.skill_tree.get(skill_name)
+        if not tree:
+            print("此技能無法進化。")
+            return False
+
+        cost = tree["cost"]
+        next_skill = tree["next"]
+
+        if self.growth_points < cost:
+            print("你的 GP 不足。")
+            return False
+
+        self.skills[self.skills.index(skill_name)] = next_skill
+        self.growth_points -= cost
+        print(f"{skill_name} 已進化為 {next_skill}！剩餘 {self.growth_points} GP。")
+        return True
+
+    def evolve_skills(self, world):
+        """互動式技能進化流程。"""
+        while True:
+            print("\n--- 技能進化 ---")
+            available = {}
+            for idx, skill in enumerate(self.skills, start=1):
+                if skill in world.skill_tree:
+                    info = world.skill_tree[skill]
+                    print(f"{idx}. {skill} -> {info['next']} (花費 {info['cost']} GP)")
+                    available[str(idx)] = skill
+            if not available:
+                print("目前沒有可進化的技能。")
+                return
+
+            choice = input("選擇要進化的技能編號，或輸入 '返回': ")
+            if choice == '返回':
+                return
+            if choice not in available:
+                print("無效的選擇。")
+                continue
+
+            self.evolve_skill(available[choice], world)
